@@ -24,6 +24,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "oled.h"
+#include "oledfont.h"
+#include "esp8266.h"
+#include "sys.h"
+#include "keyboard.h"
+#include "string.h"
+#include "stdlib.h"
 
 /* USER CODE END Includes */
 
@@ -34,10 +41,35 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define boxNumber 20
+#define numberLength 11
+#define passwordLength 6
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+struct user
+{
+	uint8_t user_number[11];
+	uint8_t user_password[6];
+};
+struct user userId[boxNumber] = {0};
+
+uint16_t userId_size = 0;
+uint16_t input_size;
+uint16_t string_num_size = 0;
+uint16_t string_password_size = 0;
+uint16_t user_size = 0;
+
+uint8_t input[11];
+uint8_t string_num[11];
+uint8_t string_password[6];
+uint8_t tx_buffer_number[11];
+uint8_t tx_buffer_password[6];
+
+uint8_t make_sure; 
+uint8_t show_mode;
+uint16_t keyboard_num;
 
 /* USER CODE END PM */
 
@@ -50,7 +82,8 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void take_goods(void);
+void access_goods(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -90,7 +123,11 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
-
+	OLED_Init();
+	OLED_Clear(); 
+	esp8266_init();
+//sprintf((char *)userId[0].user_number,"12345678901");
+//	sprintf((char *)userId[0].user_password,"654321");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -100,6 +137,59 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+//		printf("AT+MQTTPUB=0,\"/sys/a1uQRc62cTT/esp8266/thing/event/property/post\",\"{\\\"method\\\":\\\"thing.service.property.set\\\"\\,\\\"id\\\":\\\"1698739911\\\"\\,\\\"params\\\":{\\\"number\\\":\\\"%s\\\"}\\,\\\"version\\\":\\\"1.0.0\\\"}\",1,0\r\n",tx_buffer_number);
+//		HAL_Delay(1000);
+//		printf("AT+MQTTPUB=0,\"/sys/a1uQRc62cTT/esp8266/thing/event/property/post\",\"{\\\"method\\\":\\\"thing.service.property.set\\\"\\,\\\"id\\\":\\\"1698739911\\\"\\,\\\"params\\\":{\\\"password\\\":\\\"%s\\\"}\\,\\\"version\\\":\\\"1.0.0\\\"}\",1,0\r\n",tx_buffer_password);
+//    switch_keyboard(scale_keyboard());
+		//oled_show_num();
+	
+		keyboard_num = scale_keyboard();
+		
+		switch (keyboard_num)
+		{
+			case 4:input[input_size] = '0',input_size+=1;break;
+			
+			case 1:input[input_size] = '1',input_size+=1;break;
+			case 2:input[input_size] = '2',input_size+=1;break;
+			case 3:input[input_size] = '3',input_size+=1;break;
+			
+			case 5:input[input_size] = '4',input_size+=1;break;
+			case 6:input[input_size] = '5',input_size+=1;break;
+			case 7:input[input_size] = '6',input_size+=1;break;
+			
+			case 9:input[input_size] = '7',input_size+=1;break;
+			case 10:input[input_size] = '8',input_size+=1;break;
+			case 11:input[input_size] = '9',input_size+=1;break;
+			
+			case 8:input_size-=1;break;
+			case 12:input_size = 0,OLED_Clear(),memset(input,0,11),input_size = 0;;break;
+			
+			case 13:OLED_Clear(),sysMode = 1,show_mode = 1,input_size = 0;break;
+			case 14:OLED_Clear(),sysMode = 2,show_mode = 2,input_size = 0;break;
+			case 15:make_sure = 1 , input_size = 0;break;
+			case 16:sysMode=0;;break;
+			default:;
+		}
+		
+		switch(show_mode)
+		{
+			case 0:oled_shou_welcome();break;
+			case 1:oled_show_num();break;
+			case 2:oled_show_get();break;
+			case 3:;break;
+			default:;
+		}
+		
+		if(input_size >11)input_size = 0;
+		
+		OLED_ShowString(0,3,input,11);
+		
+		take_goods();
+		access_goods();
+	
+	  HAL_GPIO_TogglePin(GPIOC,GPIO_PIN_13);
+		HAL_Delay(200);
   }
   /* USER CODE END 3 */
 }
@@ -144,7 +234,63 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void access_goods(void)
+{
+	if((sysMode == 1) && (make_sure == 1))
+	{
+		strcpy((char *)string_num,(char *)input);
+		
+		for(uint8_t t = 0;t < 6;t++)
+		{
+			char str[]="0123456789";
+			userId[0].user_password[t]=str[rand()%strlen(str)];
+		}
+		
+		strcpy((char *)tx_buffer_password,(char *)userId[0].user_password);
+		
+		printf("AT+MQTTPUB=0,\"/sys/a1uQRc62cTT/esp8266/thing/event/property/post\",\"{\\\"method\\\":\\\"thing.service.property.set\\\"\\,\\\"id\\\":\\\"1698739911\\\"\\,\\\"params\\\":{\\\"password\\\":\\\"%s\\\"}\\,\\\"version\\\":\\\"1.0.0\\\"}\",1,0\r\n",tx_buffer_password);
+		HAL_Delay(200);
+		
+		OLED_Clear();
+		OLED_ShowCHinese(8,0,21);
+		OLED_ShowCHinese(40,0,22);
+		
+		userId_size++;
+		sysMode = 0;
+		make_sure = 0;
+	}
+}
 
+void take_goods(void)
+{
+	if((sysMode == 2) && (make_sure == 1))
+	{
+		strcpy((char *)string_password,(char *)input);
+		
+		if(strcmp((char *)string_password,(char *)userId[0].user_password)==0)
+		{
+			OLED_Clear();
+			OLED_ShowCHinese(8,0,17);
+			OLED_ShowCHinese(40,0,18);
+
+		}
+		else 
+		{
+			memset(input,0,11);
+			
+			OLED_Clear();
+			OLED_ShowCHinese(8,0,19);
+			OLED_ShowCHinese(40,0,20);
+		}
+		make_sure = 0;
+		userId_size++;
+	}
+}
+
+uint8_t check_user(void)
+{
+	
+}
 /* USER CODE END 4 */
 
 /**
